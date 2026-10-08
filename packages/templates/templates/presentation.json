@@ -1,0 +1,14 @@
+{
+  "id": "presentation",
+  "name": "Presentation",
+  "description": "Large type, one section per screen, swipe navigation. Turns a document into a deck-like experience.",
+  "suited_for": ["slides", "pitch", "training", "overview", "presentation"],
+  "design": {
+    "schema_version": "1.0",
+    "template_id": "presentation",
+    "typography": { "body_font": "sans", "heading_font": "slab", "base_size_px": 22, "line_height": 1.5, "scale": 1.35, "heading_weight": 800 },
+    "colors": { "background": "#111827", "text": "#f3f4f6", "accent": "#f59e0b", "muted": "#9ca3af", "surface": "#1f2937" },
+    "layout": { "max_width_px": 1040, "columns": 1, "spacing": "relaxed", "align": "left", "show_toc": false, "cover": true },
+    "reader": { "mode": "swipe" }
+  }
+}

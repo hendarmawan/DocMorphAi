@@ -1,0 +1,14 @@
+{
+  "id": "corporate",
+  "name": "Corporate",
+  "description": "Clean sans-serif business layout with a branded accent and a cover header.",
+  "suited_for": ["business", "proposal", "policy", "memo", "finance"],
+  "design": {
+    "schema_version": "1.0",
+    "template_id": "corporate",
+    "typography": { "body_font": "sans", "heading_font": "sans", "base_size_px": 16, "line_height": 1.6, "scale": 1.2, "heading_weight": 600 },
+    "colors": { "background": "#ffffff", "text": "#1b2430", "accent": "#0b5cad", "muted": "#5b6675", "surface": "#eef3f8" },
+    "layout": { "max_width_px": 880, "columns": 1, "spacing": "normal", "align": "left", "show_toc": true, "cover": true },
+    "reader": { "mode": "scroll" }
+  }
+}

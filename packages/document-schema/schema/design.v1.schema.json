@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docmorph.ai/schema/design.v1.json",
+  "title": "DocMorph design configuration (v1)",
+  "description": "Presentation-only settings. Kept separate from the document so design edits (manual or AI) can never touch content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "template_id", "typography", "colors", "layout", "reader"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "template_id": { "type": "string" },
+    "typography": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["body_font", "heading_font", "base_size_px", "line_height", "scale"],
+      "properties": {
+        "body_font": { "enum": ["serif", "sans", "mono", "humanist", "slab"] },
+        "heading_font": { "enum": ["serif", "sans", "mono", "humanist", "slab"] },
+        "base_size_px": { "type": "number", "minimum": 12, "maximum": 28 },
+        "line_height": { "type": "number", "minimum": 1.1, "maximum": 2.2 },
+        "scale": { "type": "number", "minimum": 1.05, "maximum": 1.6 },
+        "heading_weight": { "type": "integer", "minimum": 300, "maximum": 900 }
+      }
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["background", "text", "accent", "muted", "surface"],
+      "properties": {
+        "background": { "$ref": "#/$defs/hex" },
+        "text": { "$ref": "#/$defs/hex" },
+        "accent": { "$ref": "#/$defs/hex" },
+        "muted": { "$ref": "#/$defs/hex" },
+        "surface": { "$ref": "#/$defs/hex" }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_width_px", "columns", "spacing", "align"],
+      "properties": {
+        "max_width_px": { "type": "integer", "minimum": 480, "maximum": 1600 },
+        "columns": { "type": "integer", "minimum": 1, "maximum": 2 },
+        "spacing": { "enum": ["compact", "normal", "relaxed"] },
+        "align": { "enum": ["left", "justify", "center"] },
+        "show_toc": { "type": "boolean" },
+        "cover": { "type": "boolean" }
+      }
+    },
+    "reader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["scroll", "paginate", "swipe"] }
+      }
+    }
+  },
+  "$defs": {
+    "hex": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+  }
+}

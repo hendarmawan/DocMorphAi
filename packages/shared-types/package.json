@@ -1,0 +1,28 @@
+{
+  "name": "@docmorph/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TypeScript contracts for the DocMorph HTTP API, plus a small typed client.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@docmorph/document-schema": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

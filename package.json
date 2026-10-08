@@ -1,0 +1,24 @@
+{
+  "name": "docmorph-ai",
+  "private": true,
+  "description": "DocMorph AI \u2014 Intelligent Documents, Beautiful Experiences",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=@docmorph/web",
+    "dev:api": "uv run uvicorn docmorph_api.main:create_app --factory --reload --port 8000",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:py": "uv run pytest",
+    "lint:py": "uv run ruff check . && uv run ruff format --check .",
+    "test:e2e": "playwright test --config tests/e2e/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "turbo": "2.11.7",
+    "typescript": "5.9.3"
+  }
+}

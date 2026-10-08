@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.28.0"
+  UV_VERSION: "0.11.32"
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  typescript:
+    name: TypeScript (build, typecheck, unit tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  python:
+    name: Python (lint, unit, integration, security)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+      - run: uv sync --frozen --all-packages --all-extras
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest --cov=docmorph_api --cov=docmorph_converter --cov=docmorph_renderer --cov=docmorph_ai --cov=docmorph_publisher --cov=docmorph_schema --cov-report=term-missing
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    needs: [typescript, python]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --frozen --all-packages --all-extras
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: mkdir -p var && pnpm test:e2e
+        env:
+          CI: "true"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report
+          retention-days: 7
+
+  docker:
+    name: Docker stack (build and health)
+    runs-on: ubuntu-latest
+    needs: [typescript, python]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose -f infrastructure/docker/compose.yaml build
+      - run: docker compose -f infrastructure/docker/compose.yaml up -d --wait --wait-timeout 180
+      - name: API is ready against Postgres, MinIO and Redis
+        run: |
+          curl -fsS http://localhost:8000/ready
+          curl -fsS http://localhost:3000/api/health
+      - if: always()
+        run: docker compose -f infrastructure/docker/compose.yaml logs --no-color api web | tail -200
+      - if: always()
+        run: docker compose -f infrastructure/docker/compose.yaml down -v

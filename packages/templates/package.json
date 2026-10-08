@@ -1,0 +1,29 @@
+{
+  "name": "@docmorph/templates",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./templates/*": "./templates/*"
+  },
+  "files": ["dist", "templates"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@docmorph/document-schema": "workspace:*"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

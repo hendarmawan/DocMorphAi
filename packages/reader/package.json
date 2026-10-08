@@ -1,0 +1,28 @@
+{
+  "name": "@docmorph/reader",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive reading engine: scroll, pagination and swipe navigation for rendered DocMorph documents.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./bundle": "./dist/reader.global.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/bundle.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "jsdom": "30.1.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

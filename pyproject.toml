@@ -1,0 +1,53 @@
+[project]
+name = "docmorph-workspace"
+version = "0.1.0"
+description = "DocMorph AI Python workspace (API + core services)"
+requires-python = ">=3.12"
+dependencies = [
+    "docmorph-api",
+    "docmorph-schema",
+    "docmorph-converter",
+    "docmorph-renderer",
+    "docmorph-ai-engine",
+    "docmorph-publisher",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.13",
+    "jsonschema>=4.23",
+    "httpx2>=2.13",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["apps/api", "packages/document-schema", "services/*"]
+
+[tool.uv.sources]
+docmorph-api = { workspace = true }
+docmorph-schema = { workspace = true }
+docmorph-converter = { workspace = true }
+docmorph-renderer = { workspace = true }
+docmorph-ai-engine = { workspace = true }
+docmorph-publisher = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit", "tests/integration", "tests/security"]
+addopts = "-ra --strict-markers"
+pythonpath = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["node_modules", ".next"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S108"]
