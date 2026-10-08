@@ -24,6 +24,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         # M1: create tables directly; versioned migrations (Alembic) arrive with M2.
         app.state.db.create_all()
+        if hasattr(app.state.storage, "ensure_bucket"):
+            app.state.storage.ensure_bucket()
         log.info("DocMorph API %s ready (env=%s, ai=%s)", __version__, settings.env, settings.ai_provider)
         yield
 

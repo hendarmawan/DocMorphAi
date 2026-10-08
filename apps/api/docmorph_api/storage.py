@@ -57,6 +57,7 @@ class LocalStorage:
 class S3Storage:
     def __init__(self, settings: Settings):
         import boto3
+        from botocore.config import Config
 
         self.bucket = settings.s3_bucket
         self.client = boto3.client(
@@ -65,6 +66,8 @@ class S3Storage:
             aws_access_key_id=settings.s3_access_key,
             aws_secret_access_key=settings.s3_secret_key,
             region_name=settings.s3_region,
+            # Self-hosted S3 services usually need path-style URLs (no bucket subdomains).
+            config=Config(s3={"addressing_style": "path"}) if settings.s3_endpoint_url else None,
         )
 
     def put(self, key: str, data: bytes, content_type: str) -> None:
@@ -73,8 +76,14 @@ class S3Storage:
             Key=_check_key(key),
             Body=data,
             ContentType=content_type,
-            ServerSideEncryption="AES256",
         )
+
+    def ensure_bucket(self) -> None:
+        """Create the bucket on first start if the S3 service doesn't have it yet."""
+        try:
+            self.client.head_bucket(Bucket=self.bucket)
+        except Exception:
+            self.client.create_bucket(Bucket=self.bucket)
 
     def get(self, key: str) -> bytes:
         return self.client.get_object(Bucket=self.bucket, Key=_check_key(key))["Body"].read()

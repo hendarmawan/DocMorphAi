@@ -34,7 +34,7 @@ services/converter       Document parsing and upload validation
 services/ai-engine       Topic analysis and reprompting (provider adapters)
 services/renderer        Deterministic, sanitized HTML generation
 services/publisher       Export and publishing
-infrastructure/docker    Dockerfiles + Compose stack (Postgres, Redis, MinIO)
+infrastructure/docker    Dockerfiles + Compose stack (Postgres, Redis, S3)
 tests/                   unit · integration · security (pytest) · e2e (Playwright)
 docs/                    architecture, product requirements, API spec, roadmap
 ```
@@ -53,7 +53,7 @@ pnpm dev                     # Studio on http://localhost:3000
 
 Open http://localhost:3000 and drop in `tests/fixtures/files/quarterly-report.docx`.
 
-Full stack with PostgreSQL, Redis and MinIO:
+Full stack with PostgreSQL, Redis and an S3-compatible store:
 
 ```bash
 docker compose -f infrastructure/docker/compose.yaml up --build
@@ -75,7 +75,7 @@ pnpm test:e2e        # Playwright: starts API + web and runs the vertical slice 
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of the above plus a Docker Compose
-build-and-health job against Postgres, Redis and MinIO.
+build-and-health job against Postgres, Redis and an S3-compatible store.
 
 ## Documentation
 

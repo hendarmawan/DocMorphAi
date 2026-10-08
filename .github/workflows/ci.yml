@@ -91,7 +91,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker compose -f infrastructure/docker/compose.yaml build
       - run: docker compose -f infrastructure/docker/compose.yaml up -d --wait --wait-timeout 180
-      - name: API is ready against Postgres, MinIO and Redis
+      - name: API is ready against Postgres, S3 and Redis
         run: |
           curl -fsS http://localhost:8000/ready
           curl -fsS http://localhost:3000/api/health

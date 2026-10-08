@@ -23,26 +23,12 @@ services:
       interval: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
-    command: server /data --console-address ":9001"
+  # S3-compatible object store for local development (swap for AWS S3, R2 or MinIO in deployments).
+  s3:
+    image: adobe/s3mock:5.2.2
     environment:
-      MINIO_ROOT_USER: docmorph
-      MINIO_ROOT_PASSWORD: docmorph-secret
-    ports: ["9000:9000", "9001:9001"]
-    volumes: [miniodata:/data]
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      retries: 10
-
-  minio-setup:
-    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
-    depends_on:
-      minio: { condition: service_healthy }
-    entrypoint: >
-      /bin/sh -c "mc alias set local http://minio:9000 docmorph docmorph-secret &&
-                  mc mb --ignore-existing local/docmorph"
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: docmorph
+    ports: ["9090:9090"]
 
   api:
     build:
@@ -53,7 +39,7 @@ services:
       DOCMORPH_DATABASE_URL: postgresql+psycopg://docmorph:docmorph@postgres:5432/docmorph
       DOCMORPH_REDIS_URL: redis://redis:6379/0
       DOCMORPH_STORAGE_BACKEND: s3
-      DOCMORPH_S3_ENDPOINT_URL: http://minio:9000
+      DOCMORPH_S3_ENDPOINT_URL: http://s3:9090
       DOCMORPH_S3_BUCKET: docmorph
       DOCMORPH_S3_ACCESS_KEY: docmorph
       DOCMORPH_S3_SECRET_KEY: docmorph-secret
@@ -64,7 +50,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-      minio-setup: { condition: service_completed_successfully }
+      s3: { condition: service_started }
 
   web:
     build:
@@ -79,4 +65,3 @@ services:
 
 volumes:
   pgdata:
-  miniodata:
