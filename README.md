@@ -35,6 +35,7 @@ services/ai-engine       Topic analysis and reprompting (provider adapters)
 services/renderer        Deterministic, sanitized HTML generation
 services/publisher       Export and publishing
 infrastructure/docker    Dockerfiles + Compose stack (Postgres, Redis, S3)
+infrastructure/deployment  Production stack for one server (Caddy, HTTPS, deploy scripts)
 tests/                   unit · integration · security (pytest) · e2e (Playwright)
 docs/                    architecture, product requirements, API spec, roadmap
 ```
@@ -64,6 +65,13 @@ The default AI provider is an offline, deterministic one. To use Claude for
 reprompting, run `uv sync --all-packages --all-extras`, then set
 `DOCMORPH_AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY`.
 
+## Run it on a server
+
+`infrastructure/deployment` runs DocMorph on any Ubuntu or Debian server behind
+Caddy with automatic HTTPS and a password gate, and `.github/workflows/release.yml`
+publishes images to GitHub Container Registry and deploys every green push to
+`main`. See [the deployment guide](infrastructure/deployment/README.md).
+
 ## Tests
 
 ```bash
@@ -75,7 +83,8 @@ pnpm test:e2e        # Playwright: starts API + web and runs the vertical slice 
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of the above plus a Docker Compose
-build-and-health job against Postgres, Redis and an S3-compatible store.
+build-and-health job against Postgres, Redis and an S3-compatible store, and a
+production-stack job that uploads and exports a document through the Caddy gate.
 
 ## Documentation
 

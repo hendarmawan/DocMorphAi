@@ -1,0 +1,131 @@
+name: Release
+
+# Publishes the api and web images to GitHub Container Registry after CI passes on
+# main (or for a v* tag), then deploys them to the server when deploy secrets exist.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/docmorphai
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  publish:
+    name: Publish ${{ matrix.image }} image
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image tags
+        id: tags
+        run: |
+          prefix="$(echo "$IMAGE_PREFIX" | tr '[:upper:]' '[:lower:]')-${{ matrix.image }}"
+          tags="$prefix:$SHA"
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_EVENT_NAME" == "push" ]]; then
+            tags="$tags,$prefix:$GITHUB_REF_NAME"
+          else
+            tags="$tags,$prefix:latest"
+          fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/docker/${{ matrix.image }}.Dockerfile
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ env.SHA }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy:
+    name: Deploy to server
+    needs: publish
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/docmorph' }}
+      DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+    steps:
+      - name: Check deploy settings
+        id: check
+        run: |
+          if [[ -z "$DEPLOY_HOST" || -z "$DEPLOY_USER" ]]; then
+            echo "::notice::DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY secrets are not set, skipping deploy."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.check.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+          sparse-checkout: infrastructure/deployment
+      - name: Set up SSH
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          if [[ -n "$KNOWN_HOSTS" ]]; then
+            printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -H "$DEPLOY_HOST" > ~/.ssh/known_hosts
+          fi
+          printf 'Host target\n  HostName %s\n  User %s\n  IdentityFile ~/.ssh/id_deploy\n  IdentitiesOnly yes\n' \
+            "$DEPLOY_HOST" "$DEPLOY_USER" > ~/.ssh/config
+      - name: Copy stack files
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          cd infrastructure/deployment
+          scp compose.prod.yaml compose.build.yaml Caddyfile deploy.sh .env.production.example "target:$DEPLOY_PATH/"
+      - name: Pull images and restart
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$TOKEN" | ssh target "docker login ghcr.io -u '$ACTOR' --password-stdin"
+          status=0
+          ssh target "cd '$DEPLOY_PATH' && chmod +x deploy.sh && ./deploy.sh '$SHA'" || status=$?
+          ssh target "docker logout ghcr.io" || true
+          exit $status
+      - name: Smoke test
+        if: steps.check.outputs.enabled == 'true' && env.DEPLOY_URL != ''
+        run: curl -fsS --retry 10 --retry-delay 3 --retry-all-errors "$DEPLOY_URL/api/ready"

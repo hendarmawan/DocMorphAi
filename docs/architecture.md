@@ -73,7 +73,8 @@ Every customer-data row has `tenant_id`, and every query goes through a
 `TenantContext` (`apps/api/docmorph_api/tenancy.py`). Object keys are prefixed
 `tenants/{tenant}/…`. Looking up another tenant's document returns 404, not 403.
 Until authentication lands (M5) the tenant comes from `X-Tenant-ID`, with a
-default tenant outside production; production requires the header.
+default tenant outside production; production requires the header unless
+`DOCMORPH_REQUIRE_TENANT_HEADER=false` (single-team servers behind a password gate).
 
 ### 6. Provider-independent AI
 `AIProvider` is a two-method protocol (`analyze`, `design_patch`).

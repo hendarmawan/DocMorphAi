@@ -1,0 +1,92 @@
+# Production stack for a single server: Caddy (HTTPS + password gate) in front of
+# the web and API containers, with PostgreSQL, Redis and document storage on volumes.
+#
+#   cp .env.production.example .env   # or run install.sh, which generates it
+#   ./deploy.sh                       # pulls the images and starts everything
+#
+# Images come from GitHub Container Registry (built by .github/workflows/release.yml).
+# To build from source instead, add -f compose.build.yaml (see README.md).
+name: docmorph
+
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  caddy:
+    <<: *restart
+    image: caddy:2.10-alpine
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOCMORPH_SITE_ADDRESS: ${DOCMORPH_SITE_ADDRESS:-:80}
+      DOCMORPH_BASIC_AUTH_USER: ${DOCMORPH_BASIC_AUTH_USER:?set DOCMORPH_BASIC_AUTH_USER in .env}
+      DOCMORPH_BASIC_AUTH_HASH: ${DOCMORPH_BASIC_AUTH_HASH:?set DOCMORPH_BASIC_AUTH_HASH in .env}
+      DOCMORPH_MAX_REQUEST_SIZE: ${DOCMORPH_MAX_REQUEST_SIZE:-30MB}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: { condition: service_healthy }
+      web: { condition: service_started }
+
+  api:
+    <<: *restart
+    image: ${DOCMORPH_IMAGE_PREFIX:-ghcr.io/hendarmawan/docmorphai}-api:${DOCMORPH_VERSION:-latest}
+    environment:
+      DOCMORPH_ENV: production
+      # One team behind the password gate: requests without X-Tenant-ID use the default tenant.
+      DOCMORPH_REQUIRE_TENANT_HEADER: ${DOCMORPH_REQUIRE_TENANT_HEADER:-false}
+      DOCMORPH_DATABASE_URL: postgresql+psycopg://docmorph:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/docmorph
+      DOCMORPH_REDIS_URL: redis://redis:6379/0
+      DOCMORPH_STORAGE_BACKEND: ${DOCMORPH_STORAGE_BACKEND:-local}
+      DOCMORPH_STORAGE_LOCAL_PATH: /data/storage
+      DOCMORPH_S3_ENDPOINT_URL: ${DOCMORPH_S3_ENDPOINT_URL:-}
+      DOCMORPH_S3_BUCKET: ${DOCMORPH_S3_BUCKET:-docmorph}
+      DOCMORPH_S3_REGION: ${DOCMORPH_S3_REGION:-us-east-1}
+      DOCMORPH_S3_ACCESS_KEY: ${DOCMORPH_S3_ACCESS_KEY:-}
+      DOCMORPH_S3_SECRET_KEY: ${DOCMORPH_S3_SECRET_KEY:-}
+      DOCMORPH_MAX_UPLOAD_BYTES: ${DOCMORPH_MAX_UPLOAD_BYTES:-26214400}
+      DOCMORPH_AI_PROVIDER: ${DOCMORPH_AI_PROVIDER:-heuristic}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes: [api_data:/data]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  web:
+    <<: *restart
+    image: ${DOCMORPH_IMAGE_PREFIX:-ghcr.io/hendarmawan/docmorphai}-web:${DOCMORPH_VERSION:-latest}
+    depends_on: [api]
+
+  postgres:
+    <<: *restart
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: docmorph
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: docmorph
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docmorph"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    <<: *restart
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 20
+
+volumes:
+  caddy_data:
+  caddy_config:
+  api_data:
+  pgdata:
+  redis_data:

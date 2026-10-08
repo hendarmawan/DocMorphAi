@@ -17,7 +17,8 @@ COPY services services
 COPY packages/document-schema packages/document-schema
 COPY packages/templates/templates packages/templates/templates
 COPY --from=reader /repo/packages/reader/dist packages/reader/dist
-RUN uv sync --frozen --no-dev --package docmorph-api
+# The Claude adapter is included so DOCMORPH_AI_PROVIDER=anthropic works without a rebuild.
+RUN uv sync --frozen --no-dev --package docmorph-api --extra anthropic
 RUN useradd --create-home --uid 10001 docmorph && mkdir -p /data && chown docmorph /data
 USER docmorph
 ENV PATH="/app/.venv/bin:$PATH" \
