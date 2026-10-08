@@ -1,0 +1,21 @@
+[project]
+name = "docmorph-converter"
+version = "0.1.0"
+description = "Parses DOCX, PDF, Markdown and TXT into the canonical DocMorph document"
+requires-python = ">=3.12"
+dependencies = [
+    "docmorph-schema",
+    "python-docx>=1.1",
+    "markdown-it-py>=3.0",
+    "pypdf>=5.0",
+]
+
+[tool.uv.sources]
+docmorph-schema = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["docmorph_converter"]

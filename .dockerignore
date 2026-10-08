@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+var
+.git
+tests/e2e/playwright-report
+tests/e2e/test-results
+.env
+.env.*

@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docmorph.ai/schema/document.v1.json",
+  "title": "DocMorph canonical document (v1)",
+  "description": "Format-independent intermediate representation. Every uploaded format is normalized into this shape; the renderer, AI editor and exporters only ever read this.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "title", "language", "source", "blocks", "assets"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string" },
+    "language": { "type": "string", "description": "BCP-47 tag, e.g. en or id" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "filename", "sha256"],
+      "properties": {
+        "format": { "enum": ["docx", "pdf", "markdown", "txt"] },
+        "filename": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "fidelity": { "enum": ["full", "partial"], "default": "full" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "blocks": { "type": "array", "items": { "$ref": "#/$defs/block" } },
+    "assets": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/asset" }
+    }
+  },
+  "$defs": {
+    "mark": { "enum": ["bold", "italic", "underline", "strike", "code", "superscript", "subscript"] },
+    "inline": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text"],
+          "properties": {
+            "type": { "const": "text" },
+            "text": { "type": "string" },
+            "marks": { "type": "array", "items": { "$ref": "#/$defs/mark" }, "uniqueItems": true }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "text", "href"],
+          "properties": {
+            "type": { "const": "link" },
+            "text": { "type": "string" },
+            "href": { "type": "string" },
+            "marks": { "type": "array", "items": { "$ref": "#/$defs/mark" }, "uniqueItems": true }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": { "type": { "const": "break" } }
+        }
+      ]
+    },
+    "inlines": { "type": "array", "items": { "$ref": "#/$defs/inline" } },
+    "block": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "level", "content"],
+          "properties": {
+            "type": { "const": "heading" },
+            "id": { "type": "string" },
+            "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+            "content": { "$ref": "#/$defs/inlines" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "content"],
+          "properties": {
+            "type": { "enum": ["paragraph", "quote"] },
+            "id": { "type": "string" },
+            "content": { "$ref": "#/$defs/inlines" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "ordered", "items"],
+          "properties": {
+            "type": { "const": "list" },
+            "id": { "type": "string" },
+            "ordered": { "type": "boolean" },
+            "items": { "type": "array", "items": { "$ref": "#/$defs/inlines" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "rows"],
+          "properties": {
+            "type": { "const": "table" },
+            "id": { "type": "string" },
+            "header_rows": { "type": "integer", "minimum": 0, "default": 0 },
+            "caption": { "type": "string" },
+            "rows": {
+              "type": "array",
+              "items": { "type": "array", "items": { "$ref": "#/$defs/inlines" } }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "asset_id"],
+          "properties": {
+            "type": { "const": "image" },
+            "id": { "type": "string" },
+            "asset_id": { "type": "string" },
+            "alt": { "type": "string" },
+            "caption": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id", "text"],
+          "properties": {
+            "type": { "const": "code" },
+            "id": { "type": "string" },
+            "text": { "type": "string" },
+            "language": { "type": "string" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id"],
+          "properties": {
+            "type": { "const": "divider" },
+            "id": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "mime_type", "sha256", "size"],
+      "properties": {
+        "id": { "type": "string" },
+        "mime_type": { "enum": ["image/png", "image/jpeg", "image/gif", "image/webp"] },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "size": { "type": "integer", "minimum": 0 },
+        "filename": { "type": "string" },
+        "storage_key": { "type": "string" },
+        "data_base64": { "type": "string" }
+      }
+    }
+  }
+}

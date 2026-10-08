@@ -1,0 +1,67 @@
+# Full local stack: docker compose -f infrastructure/docker/compose.yaml up --build
+name: docmorph
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: docmorph
+      POSTGRES_PASSWORD: docmorph
+      POSTGRES_DB: docmorph
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docmorph"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  # S3-compatible object store for local development (swap for AWS S3, R2 or MinIO in deployments).
+  s3:
+    image: adobe/s3mock:5.2.2
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: docmorph
+    ports: ["9090:9090"]
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/api.Dockerfile
+    environment:
+      DOCMORPH_ENV: development
+      DOCMORPH_DATABASE_URL: postgresql+psycopg://docmorph:docmorph@postgres:5432/docmorph
+      DOCMORPH_REDIS_URL: redis://redis:6379/0
+      DOCMORPH_STORAGE_BACKEND: s3
+      DOCMORPH_S3_ENDPOINT_URL: http://s3:9090
+      DOCMORPH_S3_BUCKET: docmorph
+      DOCMORPH_S3_ACCESS_KEY: docmorph
+      DOCMORPH_S3_SECRET_KEY: docmorph-secret
+      DOCMORPH_CORS_ORIGINS: '["http://localhost:3000"]'
+      DOCMORPH_AI_PROVIDER: ${DOCMORPH_AI_PROVIDER:-heuristic}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      s3: { condition: service_started }
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        DOCMORPH_API_URL: http://api:8000
+    environment:
+      DOCMORPH_API_URL: http://api:8000
+    ports: ["3000:3000"]
+    depends_on: [api]
+
+volumes:
+  pgdata:

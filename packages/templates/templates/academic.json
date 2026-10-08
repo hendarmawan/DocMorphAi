@@ -1,0 +1,14 @@
+{
+  "id": "academic",
+  "name": "Academic",
+  "description": "Paper-like reading: serif text, numbered hierarchy, generous margins and a table of contents.",
+  "suited_for": ["research", "thesis", "report", "paper"],
+  "design": {
+    "schema_version": "1.0",
+    "template_id": "academic",
+    "typography": { "body_font": "serif", "heading_font": "serif", "base_size_px": 18, "line_height": 1.7, "scale": 1.25, "heading_weight": 700 },
+    "colors": { "background": "#fdfcf8", "text": "#1f1d1a", "accent": "#7a1f1f", "muted": "#6b665e", "surface": "#f3efe6" },
+    "layout": { "max_width_px": 720, "columns": 1, "spacing": "relaxed", "align": "justify", "show_toc": true, "cover": false },
+    "reader": { "mode": "scroll" }
+  }
+}

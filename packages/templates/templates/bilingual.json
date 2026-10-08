@@ -1,0 +1,14 @@
+{
+  "id": "bilingual",
+  "name": "Bilingual",
+  "description": "Two-column layout on wide screens for side-by-side reading; collapses to one column on mobile.",
+  "suited_for": ["translation", "language", "bilingual", "education"],
+  "design": {
+    "schema_version": "1.0",
+    "template_id": "bilingual",
+    "typography": { "body_font": "humanist", "heading_font": "sans", "base_size_px": 16, "line_height": 1.65, "scale": 1.2, "heading_weight": 600 },
+    "colors": { "background": "#fbfbfd", "text": "#20232a", "accent": "#0f7b6c", "muted": "#626a73", "surface": "#e9f4f2" },
+    "layout": { "max_width_px": 1200, "columns": 2, "spacing": "normal", "align": "left", "show_toc": false, "cover": false },
+    "reader": { "mode": "scroll" }
+  }
+}
