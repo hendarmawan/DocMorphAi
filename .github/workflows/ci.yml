@@ -99,3 +99,46 @@ jobs:
         run: docker compose -f infrastructure/docker/compose.yaml logs --no-color api web | tail -200
       - if: always()
         run: docker compose -f infrastructure/docker/compose.yaml down -v
+
+  production-stack:
+    name: Production stack (Caddy gate, upload through the proxy)
+    runs-on: ubuntu-latest
+    needs: [typescript, python]
+    defaults:
+      run:
+        working-directory: infrastructure/deployment
+    env:
+      COMPOSE: docker compose --env-file ci.env -f compose.prod.yaml -f compose.build.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write a throwaway .env
+        run: |
+          hash="$(docker run --rm caddy:2.10-alpine caddy hash-password --plaintext ci-password)"
+          {
+            echo "DOCMORPH_SITE_ADDRESS=:80"
+            echo "DOCMORPH_BASIC_AUTH_USER=ci"
+            echo "DOCMORPH_BASIC_AUTH_HASH='$hash'"
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo "DOCMORPH_IMAGE_PREFIX=local/docmorphai"
+          } > ci.env
+      - run: $COMPOSE build
+      - run: $COMPOSE up -d --wait --wait-timeout 180
+      - name: Gate, upload, prompt, render and export through Caddy
+        run: |
+          set -x
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/api/ready)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/api/v1/documents)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' -u ci:ci-password http://localhost/)" = 200
+          doc=$(curl -fsS -u ci:ci-password \
+            -F "file=@../../tests/fixtures/files/quarterly-report.docx;type=application/vnd.openxmlformats-officedocument.wordprocessingml.document" \
+            http://localhost/api/v1/documents | jq -r .document.id)
+          curl -fsS -u ci:ci-password -H 'content-type: application/json' -d '{"prompt":"dark mode"}' \
+            "http://localhost/api/v1/documents/$doc/design/prompt" > /dev/null
+          curl -fsS -u ci:ci-password "http://localhost/api/v1/documents/$doc/render" | grep -q "Quarterly Strategy Report"
+          curl -fsS -u ci:ci-password "http://localhost/api/v1/documents/$doc/export" | grep -q "Quarterly Strategy Report"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -u ci:ci-password http://localhost/studio/$doc)" = 200
+      - if: always()
+        run: $COMPOSE logs --no-color caddy api web | tail -200
+      - if: always()
+        run: $COMPOSE down -v

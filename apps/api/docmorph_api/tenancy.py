@@ -1,7 +1,8 @@
 """Tenant resolution.
 
 Until authentication lands (M5), the tenant comes from the ``X-Tenant-ID``
-header, falling back to a default tenant outside production. Every data access
+header, falling back to a default tenant unless the header is required
+(the production default, see ``Settings.require_tenant_header``). Every data access
 goes through a ``TenantContext`` so queries are always ownership-scoped.
 """
 
@@ -40,13 +41,14 @@ def get_tenant(
     settings = request.app.state.settings
     tenant_id = (x_tenant_id or "").strip().lower()
     if not tenant_id:
-        if settings.env == "production":
+        if settings.tenant_header_required:
             raise ApiError(401, "tenant_required", "X-Tenant-ID header is required")
         tenant_id = settings.default_tenant
     if not _TENANT_RE.match(tenant_id):
         raise ApiError(400, "invalid_tenant", "Tenant id must be 1-64 chars of a-z, 0-9, _ or -")
     if session.get(Tenant, tenant_id) is None:
-        if settings.env == "production":
+        single_tenant = not settings.tenant_header_required and tenant_id == settings.default_tenant
+        if settings.env == "production" and not single_tenant:
             raise ApiError(403, "unknown_tenant", "Unknown tenant")
         session.add(Tenant(id=tenant_id, name=tenant_id))
         session.commit()

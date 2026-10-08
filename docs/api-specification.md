@@ -7,7 +7,8 @@ TypeScript contracts and client: `packages/shared-types`.
 ## Conventions
 - Base path `/v1`. JSON in and out, except upload (multipart), render and export (HTML).
 - Tenant: `X-Tenant-ID` header (`[a-z0-9][a-z0-9_-]{0,63}`). Optional outside
-  production (falls back to `default`), required in production until auth lands.
+  production (falls back to `default`), required in production until auth lands
+  unless `DOCMORPH_REQUIRE_TENANT_HEADER=false`.
 - Errors always use one shape:
   ```json
   { "error": { "code": "unsupported_format", "message": "Unsupported file type .exe; ..." } }

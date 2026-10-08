@@ -25,9 +25,19 @@ class Settings(BaseSettings):
     max_upload_bytes: int = Field(default=25 * 1024 * 1024, ge=1024)
     cors_origins: list[str] = ["http://localhost:3000"]
     default_tenant: str = "default"
+    # Single-tenant deployments (one team behind a password gate) set this to
+    # false so requests without X-Tenant-ID use the default tenant in production.
+    # Defaults to required in production and optional elsewhere.
+    require_tenant_header: bool | None = None
 
     ai_provider: Literal["heuristic", "anthropic"] = "heuristic"
     ai_model: str | None = None
+
+    @property
+    def tenant_header_required(self) -> bool:
+        if self.require_tenant_header is None:
+            return self.env == "production"
+        return self.require_tenant_header
 
 
 @lru_cache

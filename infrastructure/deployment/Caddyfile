@@ -1,0 +1,33 @@
+# DOCMORPH_SITE_ADDRESS is a domain name (automatic HTTPS from Let's Encrypt) or
+# ":80" to serve plain HTTP on the server's IP address.
+{$DOCMORPH_SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	request_body {
+		max_size {$DOCMORPH_MAX_REQUEST_SIZE:30MB}
+	}
+
+	header -Server
+
+	# Health checks stay public so uptime monitors work without the password.
+	@health path /api/health /api/ready
+	handle @health {
+		uri strip_prefix /api
+		reverse_proxy api:8000
+	}
+
+	# Everything else sits behind a password until user accounts land (M5).
+	handle {
+		basic_auth {
+			{$DOCMORPH_BASIC_AUTH_USER} {$DOCMORPH_BASIC_AUTH_HASH}
+		}
+
+		handle_path /api/* {
+			reverse_proxy api:8000
+		}
+
+		handle {
+			reverse_proxy web:3000
+		}
+	}
+}
