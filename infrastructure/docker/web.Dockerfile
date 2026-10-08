@@ -6,7 +6,9 @@ WORKDIR /repo
 RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile
-ENV DOCMORPH_STANDALONE=1 NEXT_TELEMETRY_DISABLED=1
+# Next.js bakes rewrites in at build time, so the API address is a build argument.
+ARG DOCMORPH_API_URL=http://api:8000
+ENV DOCMORPH_STANDALONE=1 NEXT_TELEMETRY_DISABLED=1 DOCMORPH_API_URL=${DOCMORPH_API_URL}
 RUN pnpm turbo run build --filter=@docmorph/web...
 
 FROM node:22-bookworm-slim AS web

@@ -10,6 +10,10 @@
         "dist/**",
         ".next/**",
         "!.next/cache/**"
+      ],
+      "env": [
+        "DOCMORPH_STANDALONE",
+        "DOCMORPH_API_URL"
       ]
     },
     "dev": {

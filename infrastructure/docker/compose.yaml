@@ -70,6 +70,8 @@ services:
     build:
       context: ../..
       dockerfile: infrastructure/docker/web.Dockerfile
+      args:
+        DOCMORPH_API_URL: http://api:8000
     environment:
       DOCMORPH_API_URL: http://api:8000
     ports: ["3000:3000"]
