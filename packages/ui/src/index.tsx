@@ -4,7 +4,7 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost";
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "icon";
 }
 
 export function Button({ variant = "secondary", size = "md", className, type = "button", ...rest }: ButtonProps) {

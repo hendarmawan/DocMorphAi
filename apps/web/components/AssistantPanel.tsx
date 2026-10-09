@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@docmorph/ui";
+import { CircleAlert, CircleCheck, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { useState } from "react";
 
 const SUGGESTIONS = [
@@ -35,25 +36,39 @@ export function AssistantPanel({ onPrompt }: AssistantPanelProps) {
 
   return (
     <div className="assistant">
-      <label htmlFor="assistant-prompt" className="muted">
-        Describe changes…
-      </label>
-      <textarea
-        id="assistant-prompt"
-        value={prompt}
-        placeholder="e.g. make it feel like a modern magazine with a teal accent"
-        onChange={(e) => setPrompt(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit();
-        }}
-      />
-      <div className="assistant__row">
-        <span className="muted">Design only, your text never changes.</span>
-        <Button variant="primary" disabled={busy || prompt.trim().length < 2} onClick={() => void submit()}>
-          {busy ? "Generating…" : "Generate"}
-        </Button>
+      <div className="assistant__head">
+        <span className="assistant__badge" aria-hidden="true">
+          <Sparkles size={14} />
+        </span>
+        <div>
+          <h2 className="assistant__title">AI design assistant</h2>
+          <p className="assistant__sub">Design only. Your text never changes.</p>
+        </div>
       </div>
-      <div className="chips">
+      <div className="prompt-box">
+        <label htmlFor="assistant-prompt" className="sr-only">
+          Describe changes…
+        </label>
+        <textarea
+          id="assistant-prompt"
+          value={prompt}
+          placeholder="Describe the look you want, e.g. a modern magazine with a teal accent"
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) void submit();
+          }}
+        />
+        <div className="prompt-box__row">
+          <kbd className="kbd" aria-hidden="true">
+            ⌘ ↵
+          </kbd>
+          <Button variant="primary" size="sm" disabled={busy || prompt.trim().length < 2} onClick={() => void submit()}>
+            {busy ? <Loader2 size={14} className="spin" aria-hidden /> : <Wand2 size={14} aria-hidden />}
+            {busy ? "Generating…" : "Generate"}
+          </Button>
+        </div>
+      </div>
+      <div className="chips" aria-label="Suggestions">
         {SUGGESTIONS.map((s) => (
           <button key={s} type="button" onClick={() => void submit(s)} disabled={busy}>
             {s}
@@ -62,7 +77,8 @@ export function AssistantPanel({ onPrompt }: AssistantPanelProps) {
       </div>
       {result && (
         <p role="status" className={`assistant__result${result.ok ? "" : " is-error"}`}>
-          {result.text}
+          {result.ok ? <CircleCheck size={15} aria-hidden /> : <CircleAlert size={15} aria-hidden />}
+          <span>{result.text}</span>
         </p>
       )}
     </div>
